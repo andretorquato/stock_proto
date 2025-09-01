@@ -23,8 +23,9 @@ func (s *stockServer) GetStockPrice(ctx context.Context, req *proto.StockRequest
 	price := 10 + rand.Float64()*(500-10)
 
 	return &proto.StockResponse{
-		Symbol: req.GetSymbol(),
-		Price:  price,
+		Symbol:    req.GetSymbol(),
+		Price:     price,
+		Timestamp: time.Now().Unix(),
 	}, nil
 }
 

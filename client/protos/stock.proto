@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package stock_market;
+
+option go_package = "protoc_stock/proto;proto";
+
+service StockPrice {
+  rpc GetStockPrice (StockRequest) returns (StockResponse);
+}
+
+message StockRequest {
+  string symbol = 1;
+}
+
+message StockResponse {
+  string symbol = 1;
+  double price = 2;
+	int64 timestamp = 3;
+}
