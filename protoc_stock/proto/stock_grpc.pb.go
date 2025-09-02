@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StockPrice_GetStockPrice_FullMethodName = "/stock_market.StockPrice/GetStockPrice"
+	StockPrice_GetStockPrice_FullMethodName                = "/stock_market.StockPrice/GetStockPrice"
+	StockPrice_GetStockPriceServerStreaming_FullMethodName = "/stock_market.StockPrice/GetStockPriceServerStreaming"
 )
 
 // StockPriceClient is the client API for StockPrice service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type StockPriceClient interface {
 	GetStockPrice(ctx context.Context, in *StockRequest, opts ...grpc.CallOption) (*StockResponse, error)
+	GetStockPriceServerStreaming(ctx context.Context, in *StockRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StockResponse], error)
 }
 
 type stockPriceClient struct {
@@ -47,11 +49,31 @@ func (c *stockPriceClient) GetStockPrice(ctx context.Context, in *StockRequest, 
 	return out, nil
 }
 
+func (c *stockPriceClient) GetStockPriceServerStreaming(ctx context.Context, in *StockRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StockResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StockPrice_ServiceDesc.Streams[0], StockPrice_GetStockPriceServerStreaming_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StockRequest, StockResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StockPrice_GetStockPriceServerStreamingClient = grpc.ServerStreamingClient[StockResponse]
+
 // StockPriceServer is the server API for StockPrice service.
 // All implementations must embed UnimplementedStockPriceServer
 // for forward compatibility.
 type StockPriceServer interface {
 	GetStockPrice(context.Context, *StockRequest) (*StockResponse, error)
+	GetStockPriceServerStreaming(*StockRequest, grpc.ServerStreamingServer[StockResponse]) error
 	mustEmbedUnimplementedStockPriceServer()
 }
 
@@ -64,6 +86,9 @@ type UnimplementedStockPriceServer struct{}
 
 func (UnimplementedStockPriceServer) GetStockPrice(context.Context, *StockRequest) (*StockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStockPrice not implemented")
+}
+func (UnimplementedStockPriceServer) GetStockPriceServerStreaming(*StockRequest, grpc.ServerStreamingServer[StockResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method GetStockPriceServerStreaming not implemented")
 }
 func (UnimplementedStockPriceServer) mustEmbedUnimplementedStockPriceServer() {}
 func (UnimplementedStockPriceServer) testEmbeddedByValue()                    {}
@@ -104,6 +129,17 @@ func _StockPrice_GetStockPrice_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StockPrice_GetStockPriceServerStreaming_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StockRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StockPriceServer).GetStockPriceServerStreaming(m, &grpc.GenericServerStream[StockRequest, StockResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StockPrice_GetStockPriceServerStreamingServer = grpc.ServerStreamingServer[StockResponse]
+
 // StockPrice_ServiceDesc is the grpc.ServiceDesc for StockPrice service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +152,12 @@ var StockPrice_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StockPrice_GetStockPrice_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetStockPriceServerStreaming",
+			Handler:       _StockPrice_GetStockPriceServerStreaming_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/stock.proto",
 }

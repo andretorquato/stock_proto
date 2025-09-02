@@ -29,6 +29,44 @@ func (s *stockServer) GetStockPrice(ctx context.Context, req *proto.StockRequest
 	}, nil
 }
 
+func (s *stockServer) GetStockPriceServerStreaming(req *proto.StockRequest, stream grpc.ServerStreamingServer[proto.StockResponse]) error {
+	const (
+		maxIters   = 10
+		delay      = 1500 * time.Millisecond
+		minPrice   = 10.0
+		maxPrice   = 500.0
+		priceRange = maxPrice - minPrice
+	)
+
+	ctx := stream.Context()
+
+	for i := 0; i < maxIters; i++ {
+		select {
+		case <-ctx.Done():
+			log.Println("Client cancelled the request")
+			return ctx.Err()
+		case <-time.After(delay):
+		}
+
+		price := minPrice + rand.Float64()*priceRange
+
+		log.Printf("Sending price update %d: %f", i+1, price)
+		resp := &proto.StockResponse{
+			Symbol:    req.GetSymbol(),
+			Price:     price,
+			Timestamp: time.Now().Unix(),
+		}
+
+		if err := stream.Send(resp); err != nil {
+			log.Printf("Error send stream: %v", err)
+			return err
+		}
+
+	}
+
+	return nil
+}
+
 func main() {
 	list, err := net.Listen("tcp", "127.0.0.1:50051")
 

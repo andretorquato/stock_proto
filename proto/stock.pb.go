@@ -135,10 +135,11 @@ const file_proto_stock_proto_rawDesc = "" +
 	"\rStockResponse\x12\x16\n" +
 	"\x06symbol\x18\x01 \x01(\tR\x06symbol\x12\x14\n" +
 	"\x05price\x18\x02 \x01(\x01R\x05price\x12\x1c\n" +
-	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp2V\n" +
+	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp2\xb1\x01\n" +
 	"\n" +
 	"StockPrice\x12H\n" +
-	"\rGetStockPrice\x12\x1a.stock_market.StockRequest\x1a\x1b.stock_market.StockResponseB\x1aZ\x18protoc_stock/proto;protob\x06proto3"
+	"\rGetStockPrice\x12\x1a.stock_market.StockRequest\x1a\x1b.stock_market.StockResponse\x12Y\n" +
+	"\x1cGetStockPriceServerStreaming\x12\x1a.stock_market.StockRequest\x1a\x1b.stock_market.StockResponse0\x01B\x1aZ\x18protoc_stock/proto;protob\x06proto3"
 
 var (
 	file_proto_stock_proto_rawDescOnce sync.Once
@@ -159,9 +160,11 @@ var file_proto_stock_proto_goTypes = []any{
 }
 var file_proto_stock_proto_depIdxs = []int32{
 	0, // 0: stock_market.StockPrice.GetStockPrice:input_type -> stock_market.StockRequest
-	1, // 1: stock_market.StockPrice.GetStockPrice:output_type -> stock_market.StockResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 1: stock_market.StockPrice.GetStockPriceServerStreaming:input_type -> stock_market.StockRequest
+	1, // 2: stock_market.StockPrice.GetStockPrice:output_type -> stock_market.StockResponse
+	1, // 3: stock_market.StockPrice.GetStockPriceServerStreaming:output_type -> stock_market.StockResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
