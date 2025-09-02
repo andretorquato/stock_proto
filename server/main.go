@@ -38,7 +38,11 @@ func (s *stockServer) GetStockPriceServerStreaming(req *proto.StockRequest, stre
 		priceRange = maxPrice - minPrice
 	)
 
-	ctx := stream.Context()
+	parentCtx := stream.Context()
+
+	limitTime := time.Now().Add(30 * time.Second)
+	ctx, cancel := context.WithDeadline(parentCtx, limitTime)
+	defer cancel()
 
 	for i := 0; i < maxIters; i++ {
 		select {
