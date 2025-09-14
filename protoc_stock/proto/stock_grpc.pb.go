@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StockPrice_GetStockPrice_FullMethodName                = "/stock_market.StockPrice/GetStockPrice"
-	StockPrice_GetStockPriceServerStreaming_FullMethodName = "/stock_market.StockPrice/GetStockPriceServerStreaming"
+	StockPrice_GetStockPrice_FullMethodName                   = "/stock_market.StockPrice/GetStockPrice"
+	StockPrice_GetStockPriceServerStreaming_FullMethodName    = "/stock_market.StockPrice/GetStockPriceServerStreaming"
+	StockPrice_UpdateStockPriceClientStreaming_FullMethodName = "/stock_market.StockPrice/UpdateStockPriceClientStreaming"
 )
 
 // StockPriceClient is the client API for StockPrice service.
@@ -29,6 +30,7 @@ const (
 type StockPriceClient interface {
 	GetStockPrice(ctx context.Context, in *StockRequest, opts ...grpc.CallOption) (*StockResponse, error)
 	GetStockPriceServerStreaming(ctx context.Context, in *StockRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StockResponse], error)
+	UpdateStockPriceClientStreaming(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[UpdateStockPriceRequest, UpdateStockPriceResponse], error)
 }
 
 type stockPriceClient struct {
@@ -68,12 +70,26 @@ func (c *stockPriceClient) GetStockPriceServerStreaming(ctx context.Context, in 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type StockPrice_GetStockPriceServerStreamingClient = grpc.ServerStreamingClient[StockResponse]
 
+func (c *stockPriceClient) UpdateStockPriceClientStreaming(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[UpdateStockPriceRequest, UpdateStockPriceResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StockPrice_ServiceDesc.Streams[1], StockPrice_UpdateStockPriceClientStreaming_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[UpdateStockPriceRequest, UpdateStockPriceResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StockPrice_UpdateStockPriceClientStreamingClient = grpc.BidiStreamingClient[UpdateStockPriceRequest, UpdateStockPriceResponse]
+
 // StockPriceServer is the server API for StockPrice service.
 // All implementations must embed UnimplementedStockPriceServer
 // for forward compatibility.
 type StockPriceServer interface {
 	GetStockPrice(context.Context, *StockRequest) (*StockResponse, error)
 	GetStockPriceServerStreaming(*StockRequest, grpc.ServerStreamingServer[StockResponse]) error
+	UpdateStockPriceClientStreaming(grpc.BidiStreamingServer[UpdateStockPriceRequest, UpdateStockPriceResponse]) error
 	mustEmbedUnimplementedStockPriceServer()
 }
 
@@ -89,6 +105,9 @@ func (UnimplementedStockPriceServer) GetStockPrice(context.Context, *StockReques
 }
 func (UnimplementedStockPriceServer) GetStockPriceServerStreaming(*StockRequest, grpc.ServerStreamingServer[StockResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetStockPriceServerStreaming not implemented")
+}
+func (UnimplementedStockPriceServer) UpdateStockPriceClientStreaming(grpc.BidiStreamingServer[UpdateStockPriceRequest, UpdateStockPriceResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateStockPriceClientStreaming not implemented")
 }
 func (UnimplementedStockPriceServer) mustEmbedUnimplementedStockPriceServer() {}
 func (UnimplementedStockPriceServer) testEmbeddedByValue()                    {}
@@ -140,6 +159,13 @@ func _StockPrice_GetStockPriceServerStreaming_Handler(srv interface{}, stream gr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type StockPrice_GetStockPriceServerStreamingServer = grpc.ServerStreamingServer[StockResponse]
 
+func _StockPrice_UpdateStockPriceClientStreaming_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StockPriceServer).UpdateStockPriceClientStreaming(&grpc.GenericServerStream[UpdateStockPriceRequest, UpdateStockPriceResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StockPrice_UpdateStockPriceClientStreamingServer = grpc.BidiStreamingServer[UpdateStockPriceRequest, UpdateStockPriceResponse]
+
 // StockPrice_ServiceDesc is the grpc.ServiceDesc for StockPrice service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -157,6 +183,12 @@ var StockPrice_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetStockPriceServerStreaming",
 			Handler:       _StockPrice_GetStockPriceServerStreaming_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "UpdateStockPriceClientStreaming",
+			Handler:       _StockPrice_UpdateStockPriceClientStreaming_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/stock.proto",

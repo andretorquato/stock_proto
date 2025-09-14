@@ -2,9 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"path/filepath"
 	"time"
 
 	"protoc_stock/proto"
@@ -69,6 +75,83 @@ func (s *stockServer) GetStockPriceServerStreaming(req *proto.StockRequest, stre
 	}
 
 	return nil
+}
+
+func (s *stockServer) UpdateStockPriceClientStreaming(stream grpc.BidiStreamingServer[proto.UpdateStockPriceRequest, proto.UpdateStockPriceResponse]) error {
+	const batchSize = 5
+
+	parentCtx := stream.Context()
+
+	filePath := "data/updates.jsonl"
+
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+
+	if err != nil {
+		return fmt.Errorf("failed to open file: %v", err)
+	}
+
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+
+	batch := make([]*proto.UpdateStockPriceRequest, 0, batchSize)
+	totalSaved := int64(0)
+
+	flush := func() error {
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, it := range batch {
+			if err := enc.Encode(it); err != nil {
+				return fmt.Errorf("failed to write JSONL: %v", err)
+			}
+			totalSaved++
+		}
+
+		ack := &proto.UpdateStockPriceResponse{
+			Message: fmt.Sprintf("Saved %d updates, total %d", len(batch), totalSaved),
+		}
+
+		if err := stream.Send(ack); err != nil {
+			return err
+		}
+
+		batch = batch[:0]
+		return nil
+	}
+
+	for {
+		select {
+		case <-parentCtx.Done():
+			return parentCtx.Err()
+		default:
+		}
+		req, err := stream.Recv()
+
+		if errors.Is(err, io.EOF) {
+			if err := flush(); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		batch = append(batch, req)
+
+		if len(batch) >= batchSize {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 func main() {
