@@ -14,38 +14,15 @@ var packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 });
 var stock_proto = grpc.loadPackageDefinition(packageDefinition).stock_market;
 
-function main() {
-  var target = "127.0.0.1:50051";
-  var client = new stock_proto.StockPrice(
-    target,
-    grpc.credentials.createInsecure()
-  );
+var target = "127.0.0.1:50051";
+var client = new stock_proto.StockPrice(
+  target,
+  grpc.credentials.createInsecure()
+);
+var deadline = new Date();
+deadline.setSeconds(deadline.getSeconds() + 40);
 
-  // var request = { symbol: "ABC" };
-  // var deadline = new Date();
-  // deadline.setSeconds(deadline.getSeconds() + 40);
-  // client.GetStockPrice(request, { deadline }, function (err, response) {
-  //   console.log(`Stock>`, response);
-  // });
-
-  // var call = client.GetStockPriceServerStreaming(request, { deadline });
-
-  // call.on("data", function (response) {
-  //   console.log(`Stock Stream>`, response);
-  // });
-
-  // call.on("error", function (err) {
-  //   console.error(`Stock Stream> Error:`, err);
-  // });
-
-  // call.on("status", function (status) {
-  //   console.log(`Stock Stream> Status:`, status);
-  // });
-
-  // call.on("end", function () {
-  //   console.log(`Stock Stream> End`);
-  // });
-
+function clientStreaming() {
   var call = client.updateStockPriceClientStreaming(function (err, response) {
     if (err) {
       console.error(`Update Stock> Error:`, err);
@@ -68,4 +45,77 @@ function main() {
   });
 }
 
-main();
+function unary() {
+  var request = { symbol: "ABC" };
+  client.GetStockPrice(request, { deadline }, function (err, response) {
+    console.log(`Stock>`, response);
+  });
+}
+
+function serverStreaming() {
+  var request = { symbol: "ABC" };
+  var call = client.GetStockPriceServerStreaming(request, { deadline });
+
+  call.on("data", function (response) {
+    console.log(`Stock Stream>`, response);
+  });
+
+  call.on("error", function (err) {
+    console.error(`Stock Stream> Error:`, err);
+  });
+
+  call.on("status", function (status) {
+    console.log(`Stock Stream> Status:`, status);
+  });
+
+  call.on("end", function () {
+    console.log(`Stock Stream> End`);
+  });
+}
+
+function bidirectionalStreaming() {
+  var call = client.getStockPriceBidirectionalStreaming();
+
+  call.on("data", function (response) {
+    console.log(`Stock Stream>`, response);
+  });
+
+  call.on("error", function (err) {
+    console.error(`Stock Stream> Error:`, err);
+  });
+
+  call.on("status", function (status) {
+    console.log(`Stock Stream> Status:`, status);
+  });
+
+  call.on("end", function () {
+    console.log(`Stock Stream> End`);
+  });
+
+  var rl = readline.createInterface({
+    input: process.stdin,
+    prompt: "add stock or exit: ",
+    output: process.stdout,
+  });
+
+  rl.on("line", function (line) {
+    console.log(`Update Stock>`, line);
+
+    if (line === "exit") {
+      rl.close();
+      return;
+    }
+
+    var stock = JSON.parse(line);
+    call.write(stock);
+  });
+
+  rl.on("close", function () {
+    call.end();
+  });
+}
+
+// clientStreaming();
+// unary();
+// serverStreaming();
+bidirectionalStreaming();
